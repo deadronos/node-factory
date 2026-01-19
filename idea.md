@@ -30,20 +30,20 @@ A player can:
 
 ### Nodes (only 4 needed)
 
-1) **Miner**  
-   - Produces **Ore/sec** (no inputs)  
+1. **Miner**
+   - Produces **Ore/sec** (no inputs)
    - Has an internal output buffer
 
-2) **Refiner**  
-   - Consumes **Ore** → produces **Ingots**  
+2. **Refiner**
+   - Consumes **Ore** → produces **Ingots**
    - Has an input buffer (Ore) + output buffer (Ingots)
 
-3) **Assembler**  
-   - Consumes **Ingots** → produces **Modules**  
+3. **Assembler**
+   - Consumes **Ingots** → produces **Modules**
    - Has an input buffer (Ingots) + output buffer (Modules)
 
-4) **Storage** *(optional but strongly recommended)*  
-   - Buffers **one** item type (or “any” if you keep it generic)  
+4. **Storage** _(optional but strongly recommended)_
+   - Buffers **one** item type (or “any” if you keep it generic)
    - Used to stabilize throughput and prevent stall cascades
 
 > V1 goal: keep the model extremely small so you can ship a playable loop quickly.
@@ -70,7 +70,7 @@ A player can:
   - Place more nodes
   - Upgrade belts (or a single node stat)
 - Win/goal:
-  - Reach **X Modules total** *or*
+  - Reach **X Modules total** _or_
   - Sustain **Y Modules/min**
 
 ---
@@ -91,7 +91,7 @@ A player can:
 - Drag nodes, connect handles, delete nodes/edges
 - Click node → mini inspector (rate, buffers, “Starved/Blocked”)
 - Top bar with totals + per-second rates
-- Save/load to **localStorage** *(nice-to-have, small effort)*
+- Save/load to **localStorage** _(nice-to-have, small effort)_
 
 ---
 
@@ -100,6 +100,7 @@ A player can:
 Each milestone ends in a **demonstrably playable** increment.
 
 ### M0 — Skeleton “it runs”
+
 - React Flow canvas with pan/zoom
 - Node palette: add nodes to canvas
 - Basic node UI (title, small icon/label)
@@ -111,6 +112,7 @@ Each milestone ends in a **demonstrably playable** increment.
 ---
 
 ### M1 — Resource model + single-node sim
+
 - Implement a tick loop (fixed timestep)
 - Miner generates Ore into its internal buffer
 - Display buffer amount on the Miner node (e.g., `Ore: 12.3`)
@@ -120,6 +122,7 @@ Each milestone ends in a **demonstrably playable** increment.
 ---
 
 ### M2 — Belt transport (edge throughput)
+
 - Edges move resources from output buffer → input buffer
 - Throughput cap per edge
 - Simple animation: moving dots or “flow” indicator when nonzero
@@ -129,6 +132,7 @@ Each milestone ends in a **demonstrably playable** increment.
 ---
 
 ### M3 — Production chain (Miner → Refiner → Assembler)
+
 - Refiner: consumes Ore, produces Ingots
 - Assembler: consumes Ingots, produces Modules
 - Each node has:
@@ -137,11 +141,12 @@ Each milestone ends in a **demonstrably playable** increment.
   - base rate (units/sec)
 - “Starved/Blocked” state displayed (tiny label)
 
-**Done when:** full chain produces Modules continuously and you can *see* where it bottlenecks.
+**Done when:** full chain produces Modules continuously and you can _see_ where it bottlenecks.
 
 ---
 
 ### M4 — Costs + build loop (turns it into a game)
+
 - Start with a small “starting kit” (1 Miner, 1 Refiner, 1 Assembler)
 - Placing a new node costs Modules
 - Add a goal: `Produce 50 Modules` (progress bar)
@@ -151,10 +156,11 @@ Each milestone ends in a **demonstrably playable** increment.
 ---
 
 ### M5 — Upgrades (one upgrade path only)
+
 Pick **one** upgrade line for V1 (belts recommended):
 
 - **Belt Mk2:** upgrade selected edge throughput  
-  *(Alternative: +output for Miner or better conversion for Refiner)*
+  _(Alternative: +output for Miner or better conversion for Refiner)_
 
 UI: click edge/node → **Upgrade** button (costs Modules)
 
@@ -163,6 +169,7 @@ UI: click edge/node → **Upgrade** button (costs Modules)
 ---
 
 ### M6 — Minimal “Tech” (tiny unlock gate)
+
 Add a “Research” panel without a full tree:
 
 - Spend Modules to unlock **Storage** (if you cut it initially) and/or **Splitter**
@@ -173,6 +180,7 @@ Add a “Research” panel without a full tree:
 ---
 
 ### M7 — Splitter (first real graph puzzle)
+
 - Splitter node: 1 input → 2 outputs (round-robin or proportional)
 - Enables parallel scaling (2x refiners/assemblers fed from 1 miner)
 
@@ -183,13 +191,16 @@ Add a “Research” panel without a full tree:
 ## Optional mini-milestones (big payoff, small polish)
 
 ### M8 — Analytics overlay
+
 - Highlight edges at ~90% capacity
 - Show per-edge flow rate on hover
 
 ### M9 — Save/Load
+
 - Serialize nodes/edges + resources to localStorage
 
 ### M10 — Tutorial hints
+
 - “Your Refiner is starved — add another Miner or increase belt throughput.”
 
 ---
