@@ -1,51 +1,39 @@
-import React, { useCallback, useState } from 'react';
 import ReactFlow, {
-    addEdge,
-    applyEdgeChanges,
-    applyNodeChanges,
+    ReactFlowProvider,
 } from 'reactflow';
-import type { Connection,
-              Edge,
-              Node,
-              OnConnect
- } from 'reactflow';
-import type { NodeChange, EdgeChange } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { NodePalette } from './NodePalette';
+import { useStore } from '../../store/useStore';
+import MinerNode from '../../nodes/MinerNode';
+import RefinerNode from '../../nodes/RefinerNode';
+import AssemblerNode from '../../nodes/AssemblerNode';
+import StorageNode from '../../nodes/StorageNode';
+import { useGameLoop } from '../../hooks/useGameLoop';
+import ConveyorEdge from '../../edges/ConveyorEdge';
 
-export default function FlowCanvas() {
-    const [nodes, setNodes] = useState<Node[]>([]);
-    const [edges, setEdges] = useState<Edge[]>([]);
+const nodeTypes = {
+  Miner: MinerNode,
+  Refiner: RefinerNode,
+  Assembler: AssemblerNode,
+  Storage: StorageNode,
+};
 
-    const onNodesChange = useCallback(
-        (changes: NodeChange[]) => setNodes((n) => applyNodeChanges(changes, n)),
-        []
-    );
-    
-    const onEdgesChange = useCallback(
-        (changes: EdgeChange[]) => setEdges((e) => applyEdgeChanges(changes, e)),
-        []
-    );
+const edgeTypes = {
+    conveyor: ConveyorEdge,
+};
 
-    const onConnect: OnConnect = useCallback(
-        (connection: Connection) => setEdges((e) => addEdge(connection, e)),
-        []
-    );
-
-    const addNode = useCallback((type: string) => {
-        const id = Date.now().toString();
-        const newNode: Node = {
-            id,
-            // quick center on screen — good enough for M0
-            position: { x: window.innerWidth / 2 - 150, y: window.innerHeight / 2 - 50 },
-            data: { label: type },
-        };
-        setNodes((ns) => ns.concat(newNode));
-    }, []);
+function FlowCanvasContent() {
+    useGameLoop();
+    const nodes = useStore((state) => state.nodes);
+    const edges = useStore((state) => state.edges);
+    const onNodesChange = useStore((state) => state.onNodesChange);
+    const onEdgesChange = useStore((state) => state.onEdgesChange);
+    const onConnect = useStore((state) => state.onConnect);
+    const addNode = useStore((state) => state.addNode);
 
     return (
         <div style={{ width: '100%', height: '80vh', display: 'flex', flexDirection: 'column' }}>
-            <NodePalette addNode={addNode} />
+            <NodePalette addNode={(type) => addNode(type, { x: 100 + Math.random() * 100, y: 100 + Math.random() * 100 })} />
             <div style={{ flex: 1 }}>
                 <ReactFlow
                     nodes={nodes}
@@ -53,9 +41,19 @@ export default function FlowCanvas() {
                     onNodesChange={onNodesChange}
                     onEdgesChange={onEdgesChange}
                     onConnect={onConnect}
+                    nodeTypes={nodeTypes}
+                    edgeTypes={edgeTypes}
                     fitView
                 />
             </div>
         </div>
     );
+}
+
+export default function FlowCanvas() {
+    return (
+        <ReactFlowProvider>
+            <FlowCanvasContent />
+        </ReactFlowProvider>
+    )
 }
