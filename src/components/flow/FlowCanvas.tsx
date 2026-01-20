@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import ReactFlow, {
     addEdge,
     applyEdgeChanges,
@@ -12,9 +12,11 @@ import type { Connection,
               Node,
               OnConnect
  } from 'reactflow';
-import type { NodeChange, EdgeChange } from 'reactflow';
+import type { NodeChange, EdgeChange, EdgeMouseHandler } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { NodePalette } from './NodePalette';
+import { ResearchPanel } from './ResearchPanel';
+import { EdgeUpgradePanel } from './EdgeUpgradePanel';
 import { useGameStore } from '../../store/gameStore';
 import { MinerNode, RefinerNode, AssemblerNode, StorageNode, SplitterNode } from '../nodes';
 import { createFactoryNode } from '../../engine/nodeFactory';
@@ -35,6 +37,8 @@ export default function FlowCanvas() {
         isPaused,
         togglePause,
     } = useGameStore();
+
+    const [selectedEdge, setSelectedEdge] = useState<Edge<BeltData> | null>(null);
 
     // Define custom node types
     const nodeTypes = useMemo(
@@ -60,8 +64,13 @@ export default function FlowCanvas() {
         (changes: EdgeChange[]) => {
             const newEdges = applyEdgeChanges(changes, edges) as Edge<BeltData>[];
             setEdges(newEdges);
+            
+            // Clear selected edge if it was deleted
+            if (selectedEdge && !newEdges.find(e => e.id === selectedEdge.id)) {
+                setSelectedEdge(null);
+            }
         },
-        [edges, setEdges]
+        [edges, setEdges, selectedEdge]
     );
 
     const onConnect: OnConnect = useCallback(
@@ -79,6 +88,13 @@ export default function FlowCanvas() {
             setEdges(addEdge(newEdge, edges));
         },
         [edges, setEdges]
+    );
+
+    const onEdgeClick: EdgeMouseHandler = useCallback(
+        (_event, edge) => {
+            setSelectedEdge(edge as Edge<BeltData>);
+        },
+        []
     );
 
     const addNode = useCallback((type: NodeType) => {
@@ -168,6 +184,9 @@ export default function FlowCanvas() {
                     <div className="text-sm text-slate-600">
                         📈 {economy.modulesPerSecond.toFixed(2)}/s
                     </div>
+                    <div className="text-sm text-slate-600">
+                        Total: {economy.totalModulesProduced.toFixed(1)}
+                    </div>
                     <button
                         onClick={togglePause}
                         className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
@@ -191,20 +210,30 @@ export default function FlowCanvas() {
                     </div>
                 </div>
             )}
-            <div style={{ flex: 1 }}>
-                <ReactFlow
-                    nodes={nodes}
-                    edges={edges}
-                    onNodesChange={onNodesChange}
-                    onEdgesChange={onEdgesChange}
-                    onConnect={onConnect}
-                    nodeTypes={nodeTypes}
-                    fitView
-                >
-                    <Background />
-                    <Controls />
-                    <MiniMap />
-                </ReactFlow>
+            <div className="flex-1 flex gap-4 p-4">
+                <div className="flex-1 relative">
+                    <ReactFlow
+                        nodes={nodes}
+                        edges={edges}
+                        onNodesChange={onNodesChange}
+                        onEdgesChange={onEdgesChange}
+                        onConnect={onConnect}
+                        onEdgeClick={onEdgeClick}
+                        nodeTypes={nodeTypes}
+                        fitView
+                    >
+                        <Background />
+                        <Controls />
+                        <MiniMap />
+                    </ReactFlow>
+                    <EdgeUpgradePanel
+                        selectedEdge={selectedEdge}
+                        onClose={() => setSelectedEdge(null)}
+                    />
+                </div>
+                <div className="w-80 space-y-4">
+                    <ResearchPanel />
+                </div>
             </div>
         </div>
     );

@@ -137,15 +137,13 @@ export function updateAssembler(node: Node<AssemblerNodeData>, deltaTime: number
 }
 
 // Storage: does nothing special, just holds resources
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function updateStorage(_node: Node<StorageNodeData>): Partial<StorageNodeData> {
+export function updateStorage(): Partial<StorageNodeData> {
   // Storage is passive, updated by belt transfers
   return {};
 }
 
 // Splitter: distributes input to outputs in round-robin fashion
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function updateSplitter(_node: Node<SplitterNodeData>): Partial<SplitterNodeData> {
+export function updateSplitter(): Partial<SplitterNodeData> {
   // Splitter logic is handled in belt transfers
   return {};
 }

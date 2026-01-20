@@ -41,7 +41,7 @@ const initialState: Omit<GameStore, keyof Omit<GameStore, keyof GameState | 'nod
   nodes: [],
   edges: [],
   economy: {
-    modules: 0,
+    modules: 100, // Start with some modules to buy initial nodes
     totalModulesProduced: 0,
     modulesPerSecond: 0,
   },
