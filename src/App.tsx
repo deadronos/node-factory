@@ -1,25 +1,17 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
 import "./App.css";
-import { Card } from "./components/ui/card";
 import FlowCanvas from "./components/flow/FlowCanvas";
-import { AspectRatio } from "@radix-ui/react-aspect-ratio";
+import { GameTopBar } from "./components/game/GameTopBar";
 
 function App() {
-  const [count, setCount] = useState(0);
-
   return (
-    <>
-      <div>
-        <Card className="card">
-          <h1>Node Factory</h1>
-        </Card>
+    <div className="app-shell">
+      <div className="mx-auto flex h-full w-full max-w-[1400px] flex-col gap-3 p-4">
+        <GameTopBar />
+        <div className="min-h-0 flex-1">
+          <FlowCanvas />
+        </div>
       </div>
-      <div>
-        <FlowCanvas />
-      </div>
-    </>
+    </div>
   );
 }
 

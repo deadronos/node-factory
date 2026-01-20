@@ -121,3 +121,14 @@
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes edge-flow-dash {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+.edge-flow {
+  stroke-dashoffset: 0;
+  animation: edge-flow-dash 1s linear infinite;
+}

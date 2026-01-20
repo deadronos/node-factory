@@ -1,61 +1,76 @@
-import React, { useCallback, useState } from 'react';
-import ReactFlow, {
-    addEdge,
-    applyEdgeChanges,
-    applyNodeChanges,
-} from 'reactflow';
-import type { Connection,
-              Edge,
-              Node,
-              OnConnect
- } from 'reactflow';
-import type { NodeChange, EdgeChange } from 'reactflow';
-import 'reactflow/dist/style.css';
-import { NodePalette } from './NodePalette';
+import { useEffect, useMemo } from "react";
+import ReactFlow, { Background, Controls, type OnSelectionChangeParams } from "reactflow";
+import "reactflow/dist/style.css";
+import { useGameLoop } from "@/hooks/use-game-loop";
+import { useGameStore } from "@/stores/gameStore";
+import { NodePalette } from "./NodePalette";
+import { MinerNode } from "./nodes/MinerNode";
+import { RefinerNode } from "./nodes/RefinerNode";
+import { AssemblerNode } from "./nodes/AssemblerNode";
+import { StorageNode } from "./nodes/StorageNode";
+import { MaterialEdge } from "./edges/MaterialEdge";
+import { InspectorPanel } from "../game/InspectorPanel";
 
 export default function FlowCanvas() {
-    const [nodes, setNodes] = useState<Node[]>([]);
-    const [edges, setEdges] = useState<Edge[]>([]);
+  const nodes = useGameStore((s) => s.nodes);
+  const edges = useGameStore((s) => s.edges);
+  const onNodesChange = useGameStore((s) => s.onNodesChange);
+  const onEdgesChange = useGameStore((s) => s.onEdgesChange);
+  const onConnect = useGameStore((s) => s.onConnect);
+  const initNewGame = useGameStore((s) => s.initNewGame);
+  const setSelection = useGameStore((s) => s.setSelection);
 
-    const onNodesChange = useCallback(
-        (changes: NodeChange[]) => setNodes((n) => applyNodeChanges(changes, n)),
-        []
-    );
-    
-    const onEdgesChange = useCallback(
-        (changes: EdgeChange[]) => setEdges((e) => applyEdgeChanges(changes, e)),
-        []
-    );
+  useGameLoop();
 
-    const onConnect: OnConnect = useCallback(
-        (connection: Connection) => setEdges((e) => addEdge(connection, e)),
-        []
-    );
+  useEffect(() => {
+    if (nodes.length === 0) initNewGame();
+  }, [initNewGame, nodes.length]);
 
-    const addNode = useCallback((type: string) => {
-        const id = Date.now().toString();
-        const newNode: Node = {
-            id,
-            // quick center on screen — good enough for M0
-            position: { x: window.innerWidth / 2 - 150, y: window.innerHeight / 2 - 50 },
-            data: { label: type },
-        };
-        setNodes((ns) => ns.concat(newNode));
-    }, []);
+  const nodeTypes = useMemo(
+    () => ({
+      miner: MinerNode,
+      refiner: RefinerNode,
+      assembler: AssemblerNode,
+      storage: StorageNode,
+    }),
+    [],
+  );
+  const edgeTypes = useMemo(() => ({ material: MaterialEdge }), []);
 
-    return (
-        <div style={{ width: '100%', height: '80vh', display: 'flex', flexDirection: 'column' }}>
-            <NodePalette addNode={addNode} />
-            <div style={{ flex: 1 }}>
-                <ReactFlow
-                    nodes={nodes}
-                    edges={edges}
-                    onNodesChange={onNodesChange}
-                    onEdgesChange={onEdgesChange}
-                    onConnect={onConnect}
-                    fitView
-                />
-            </div>
+  const onSelectionChange = (sel: OnSelectionChangeParams) => {
+    const nodeId = sel.nodes?.[0]?.id ?? null;
+    const edgeId = sel.edges?.[0]?.id ?? null;
+    setSelection({ nodeId, edgeId });
+  };
+
+  return (
+    <div className="flex h-full min-h-0 w-full gap-3">
+      <div className="w-[320px] shrink-0">
+        <div className="h-full rounded-xl border bg-card/60 p-3">
+          <NodePalette />
+          <div className="mt-3 border-t pt-3">
+            <InspectorPanel />
+          </div>
         </div>
-    );
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-hidden rounded-xl border">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onSelectionChange={onSelectionChange}
+          deleteKeyCode={["Backspace", "Delete"] as any}
+          fitView
+        >
+          <Background gap={18} size={1} color="#cbd5e1" />
+          <Controls showInteractive={false} />
+        </ReactFlow>
+      </div>
+    </div>
+  );
 }
