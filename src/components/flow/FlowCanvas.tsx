@@ -78,6 +78,10 @@ export default function FlowCanvas() {
             const newEdge: Edge<BeltData> = {
                 ...connection,
                 id: `${connection.source}-${connection.target}-${Date.now()}`,
+                animated: true, // Add animation to show material flow
+                style: {
+                    strokeWidth: 2,
+                },
                 data: {
                     resourceType: null,
                     throughput: BASE_BELT_THROUGHPUT,

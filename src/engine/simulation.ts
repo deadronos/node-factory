@@ -273,10 +273,10 @@ export function simulateTick(
         }
         break;
       case 'storage':
-        update = updateStorage(node as Node<StorageNodeData>);
+        update = updateStorage();
         break;
       case 'splitter':
-        update = updateSplitter(node as Node<SplitterNodeData>);
+        update = updateSplitter();
         break;
     }
     
