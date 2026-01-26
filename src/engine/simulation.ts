@@ -136,16 +136,86 @@ export function updateAssembler(node: Node<AssemblerNodeData>, deltaTime: number
   };
 }
 
-// Storage: does nothing special, just holds resources
-export function updateStorage(): Partial<StorageNodeData> {
-  // Storage is passive, updated by belt transfers
-  return {};
+// Storage: forwards input buffers to output buffers
+export function updateStorage(node: Node<StorageNodeData>): Partial<StorageNodeData> {
+  const inputBuffer = node.data.inputBuffers[0];
+  const outputBuffer = node.data.outputBuffers[0];
+
+  if (!inputBuffer || !outputBuffer) return {};
+
+  const needsAmountUpdate = outputBuffer.amount !== inputBuffer.amount;
+  const needsTypeUpdate = outputBuffer.type !== inputBuffer.type;
+  if (!needsAmountUpdate && !needsTypeUpdate) {
+    return {};
+  }
+
+  return {
+    outputBuffers: [{
+      ...outputBuffer,
+      type: inputBuffer.type,
+      amount: inputBuffer.amount,
+    }],
+  };
 }
 
 // Splitter: distributes input to outputs in round-robin fashion
-export function updateSplitter(): Partial<SplitterNodeData> {
-  // Splitter logic is handled in belt transfers
-  return {};
+export function updateSplitter(node: Node<SplitterNodeData>): Partial<SplitterNodeData> {
+  const data = node.data;
+  const inputBuffer = data.inputBuffers[0];
+  const outputBuffers = data.outputBuffers;
+
+  if (!inputBuffer || outputBuffers.length === 0) return {};
+
+  const resourceType = inputBuffer.type;
+  let remainingInput = inputBuffer.amount;
+  const updatedOutputs = outputBuffers.map(buf => ({
+    ...buf,
+    type: resourceType,
+  }));
+  const outputCount = updatedOutputs.length;
+  let lastOutput = data.lastOutput;
+  let nextOutputIndex = (lastOutput + 1) % outputCount;
+  let emptyLoops = 0;
+
+  while (remainingInput > 0 && emptyLoops < outputCount) {
+    const buffer = updatedOutputs[nextOutputIndex];
+    const space = buffer.capacity - buffer.amount;
+
+    if (space > 0) {
+      const transfer = Math.min(remainingInput, space);
+      updatedOutputs[nextOutputIndex] = {
+        ...buffer,
+        amount: buffer.amount + transfer,
+        type: resourceType,
+      };
+      remainingInput -= transfer;
+      lastOutput = nextOutputIndex;
+      emptyLoops = 0;
+    } else {
+      emptyLoops += 1;
+    }
+
+    nextOutputIndex = (nextOutputIndex + 1) % outputCount;
+  }
+
+  const outputsChanged = updatedOutputs.some((buf, idx) =>
+    buf.amount !== outputBuffers[idx].amount || buf.type !== outputBuffers[idx].type
+  );
+  const inputChanged = remainingInput !== inputBuffer.amount;
+  const lastOutputChanged = lastOutput !== data.lastOutput;
+
+  if (!outputsChanged && !inputChanged && !lastOutputChanged) {
+    return {};
+  }
+
+  return {
+    inputBuffers: [{
+      ...inputBuffer,
+      amount: remainingInput,
+    }],
+    outputBuffers: updatedOutputs,
+    lastOutput,
+  };
 }
 
 // Belt transfer: moves resources from source output to target input
@@ -177,11 +247,12 @@ export function transferAlongBelt(
   // Determine resource type if not set
   const resourceType = beltData.resourceType || sourceOutput.type;
   
-  // Find or create target input buffer for this resource type
+  // Find target input buffer matching the resource type
   let targetInput = targetNode.data.inputBuffers.find(b => b.type === resourceType);
-  
-  // For storage/splitter nodes that accept any resource, use first buffer
-  if (!targetInput && targetNode.data.inputBuffers.length > 0) {
+
+  // Allow only storage and splitter nodes to act as wildcards
+  const acceptsAny = ['storage', 'splitter'].includes(targetNode.data.type);
+  if (!targetInput && acceptsAny && targetNode.data.inputBuffers.length > 0) {
     targetInput = targetNode.data.inputBuffers[0];
   }
   
