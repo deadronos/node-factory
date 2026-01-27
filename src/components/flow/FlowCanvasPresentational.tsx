@@ -7,12 +7,12 @@ import ReactFlow, {
     Controls,
     MiniMap,
 } from 'reactflow';
-import type { Edge, Node, OnConnect } from 'reactflow';
+import type { Edge, Node, EdgeMouseHandler, OnConnect } from 'reactflow';
 import type { NodeChange, EdgeChange, EdgeMouseHandler } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { NodePalette } from './NodePalette';
-import { ResearchPanel } from './ResearchPanel';
-import { EdgeUpgradePanel } from './EdgeUpgradePanel';
+import { NodePalette } from './NodePaletteContainer';
+import { ResearchPanel } from './ResearchPanelContainer';
+import { EdgeUpgradePanel } from './EdgeUpgradePanelContainer';
 import { MinerNode, RefinerNode, AssemblerNode, StorageNode, SplitterNode } from '../nodes';
 import type { FactoryNodeData, BeltData, NodeType } from '../../types/game';
 
@@ -26,13 +26,13 @@ interface FlowCanvasProps {
     onNodesChange: (changes: NodeChange[]) => void;
     onEdgesChange: (changes: EdgeChange[]) => void;
     onConnect: (connection: any) => void;
-    onEdgeClick: (edge: Edge<BeltData>) => void;
+    onEdgeClick: EdgeMouseHandler;
     onAddNode: (type: NodeType) => void;
     onTogglePause: () => void;
     onCloseSelectedEdge: () => void;
 }
 
-export default function FlowCanvas({
+export default function FlowCanvasPresentational({
     nodes,
     edges,
     selectedEdge,
@@ -104,7 +104,7 @@ export default function FlowCanvas({
                         onNodesChange={onNodesChange}
                         onEdgesChange={onEdgesChange}
                         onConnect={onConnect}
-                        onEdgeClick={(event, edge) => onEdgeClick(edge as Edge<BeltData>)}
+                        onEdgeClick={onEdgeClick}
                         nodeTypes={nodeTypes}
                         fitView
                     >

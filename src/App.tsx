@@ -1,6 +1,6 @@
 import "./App.css";
 import { Card } from "./components/ui/card";
-import FlowCanvas from "./components/flow/FlowCanvas";
+import FlowCanvas from "./components/flow/FlowCanvasContainer";
 
 function App() {
   return (
