@@ -1,5 +1,4 @@
 import { useGameStore } from '../../store/gameStore';
-import type { NodeType } from '../../types/game';
 import { ResearchPanelPresentational } from './ResearchPanelPresentational';
 
 export function ResearchPanel() {
