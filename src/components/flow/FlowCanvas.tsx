@@ -1,14 +1,11 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import ReactFlow, {
-    addEdge,
-    applyEdgeChanges,
-    applyNodeChanges,
     Background,
     Controls,
     MiniMap,
 } from 'reactflow';
-import type { Edge, Node, OnConnect } from 'reactflow';
-import type { NodeChange, EdgeChange, EdgeMouseHandler } from 'reactflow';
+import type { Edge, Node } from 'reactflow';
+import type { NodeChange, EdgeChange } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { NodePalette } from './NodePalette';
 import { ResearchPanel } from './ResearchPanel';
@@ -104,7 +101,7 @@ export default function FlowCanvas({
                         onNodesChange={onNodesChange}
                         onEdgesChange={onEdgesChange}
                         onConnect={onConnect}
-                        onEdgeClick={(event, edge) => onEdgeClick(edge as Edge<BeltData>)}
+                        onEdgeClick={(_, edge) => onEdgeClick(edge as Edge<BeltData>)}
                         nodeTypes={nodeTypes}
                         fitView
                     >

@@ -344,11 +344,10 @@ export function simulateTick(
         }
         break;
       case 'storage':
-        update = updateStorage();
+        update = updateStorage(node as Node<StorageNodeData>);
         break;
       case 'splitter':
-        update = updateSplitter();
-        break;
+        update = updateSplitter(node as Node<SplitterNodeData>);
     }
     
     if (Object.keys(update).length > 0) {
