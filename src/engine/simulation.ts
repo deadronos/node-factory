@@ -15,21 +15,21 @@ const TICK_DELTA = 0.1; // 10 ticks per second = 0.1 seconds per tick
 export function updateMiner(node: Node<MinerNodeData>, deltaTime: number): Partial<MinerNodeData> {
   const data = node.data;
   const outputBuffer = data.outputBuffers[0];
-  
+
   if (!outputBuffer) return {};
-  
+
   // Calculate production
   const produced = data.productionRate * deltaTime;
   const newAmount = Math.min(outputBuffer.amount + produced, outputBuffer.capacity);
-  
+
   const newOutputBuffers = [{
     ...outputBuffer,
     amount: newAmount,
   }];
-  
+
   // Update status
   const status = newAmount >= outputBuffer.capacity ? 'blocked' : 'producing';
-  
+
   return {
     outputBuffers: newOutputBuffers,
     status,
@@ -41,37 +41,37 @@ export function updateRefiner(node: Node<RefinerNodeData>, deltaTime: number): P
   const data = node.data;
   const inputBuffer = data.inputBuffers[0];
   const outputBuffer = data.outputBuffers[0];
-  
+
   if (!inputBuffer || !outputBuffer) return {};
-  
+
   const recipe = data.recipe;
   const requiredInput = recipe.inputs.ore || 0;
   const producedOutput = recipe.outputs.ingots || 0;
-  
+
   // Check if we can produce
-  const canProduce = inputBuffer.amount >= requiredInput && 
+  const canProduce = inputBuffer.amount >= requiredInput &&
                      outputBuffer.amount + producedOutput <= outputBuffer.capacity;
-  
+
   if (!canProduce) {
     const status = inputBuffer.amount < requiredInput ? 'starved' :
                    outputBuffer.amount >= outputBuffer.capacity ? 'blocked' : 'idle';
     return { status, progress: 0 };
   }
-  
+
   // Update progress
   const progressIncrement = (1 / recipe.processingTime) * (deltaTime / TICK_DELTA);
   let newProgress = data.progress + progressIncrement;
-  
+
   let newInputAmount = inputBuffer.amount;
   let newOutputAmount = outputBuffer.amount;
-  
+
   // Complete production
   if (newProgress >= 1.0) {
     newProgress = 0;
     newInputAmount -= requiredInput;
     newOutputAmount = Math.min(newOutputAmount + producedOutput, outputBuffer.capacity);
   }
-  
+
   return {
     inputBuffers: [{
       ...inputBuffer,
@@ -91,37 +91,37 @@ export function updateAssembler(node: Node<AssemblerNodeData>, deltaTime: number
   const data = node.data;
   const inputBuffer = data.inputBuffers[0];
   const outputBuffer = data.outputBuffers[0];
-  
+
   if (!inputBuffer || !outputBuffer) return {};
-  
+
   const recipe = data.recipe;
   const requiredInput = recipe.inputs.ingots || 0;
   const producedOutput = recipe.outputs.modules || 0;
-  
+
   // Check if we can produce
-  const canProduce = inputBuffer.amount >= requiredInput && 
+  const canProduce = inputBuffer.amount >= requiredInput &&
                      outputBuffer.amount + producedOutput <= outputBuffer.capacity;
-  
+
   if (!canProduce) {
     const status = inputBuffer.amount < requiredInput ? 'starved' :
                    outputBuffer.amount >= outputBuffer.capacity ? 'blocked' : 'idle';
     return { status, progress: 0 };
   }
-  
+
   // Update progress
   const progressIncrement = (1 / recipe.processingTime) * (deltaTime / TICK_DELTA);
   let newProgress = data.progress + progressIncrement;
-  
+
   let newInputAmount = inputBuffer.amount;
   let newOutputAmount = outputBuffer.amount;
-  
+
   // Complete production
   if (newProgress >= 1.0) {
     newProgress = 0;
     newInputAmount -= requiredInput;
     newOutputAmount = Math.min(newOutputAmount + producedOutput, outputBuffer.capacity);
   }
-  
+
   return {
     inputBuffers: [{
       ...inputBuffer,
@@ -136,24 +136,40 @@ export function updateAssembler(node: Node<AssemblerNodeData>, deltaTime: number
   };
 }
 
-// Storage: forwards input buffers to output buffers
+// Storage: moves resources from input buffer to output buffer
 export function updateStorage(node: Node<StorageNodeData>): Partial<StorageNodeData> {
   const inputBuffer = node.data.inputBuffers[0];
   const outputBuffer = node.data.outputBuffers[0];
 
   if (!inputBuffer || !outputBuffer) return {};
 
-  const needsAmountUpdate = outputBuffer.amount !== inputBuffer.amount;
-  const needsTypeUpdate = outputBuffer.type !== inputBuffer.type;
-  if (!needsAmountUpdate && !needsTypeUpdate) {
+  // If input is empty and type matches, nothing to do
+  if (inputBuffer.amount <= 0 && inputBuffer.type === outputBuffer.type) return {};
+
+  // Calculate how much we can move from input to output
+  // Storage can change its "stored type" if it's currently empty
+  const canChangeType = outputBuffer.amount <= 0;
+  const targetType = canChangeType ? inputBuffer.type : outputBuffer.type;
+
+  // If types don't match and we can't change type (output not empty), we're blocked
+  if (inputBuffer.type !== targetType && !canChangeType) {
     return {};
   }
 
+  const space = outputBuffer.capacity - outputBuffer.amount;
+  const moveAmount = Math.min(inputBuffer.amount, space);
+
+  if (moveAmount <= 0 && inputBuffer.type === outputBuffer.type) return {};
+
   return {
+    inputBuffers: [{
+      ...inputBuffer,
+      amount: inputBuffer.amount - moveAmount,
+    }],
     outputBuffers: [{
       ...outputBuffer,
-      type: inputBuffer.type,
-      amount: inputBuffer.amount,
+      type: targetType,
+      amount: outputBuffer.amount + moveAmount,
     }],
   };
 }
@@ -233,7 +249,7 @@ export function transferAlongBelt(
   if (!beltData) {
     return { sourceUpdate: {}, targetUpdate: {}, edgeUpdate: {} };
   }
-  
+
   // Find source output buffer
   const sourceOutput = sourceNode.data.outputBuffers[0];
   if (!sourceOutput || sourceOutput.amount <= 0) {
@@ -243,10 +259,10 @@ export function transferAlongBelt(
       edgeUpdate: { flowRate: 0 },
     };
   }
-  
+
   // Determine resource type if not set
   const resourceType = beltData.resourceType || sourceOutput.type;
-  
+
   // Find target input buffer matching the resource type
   let targetInput = targetNode.data.inputBuffers.find(b => b.type === resourceType);
 
@@ -255,7 +271,7 @@ export function transferAlongBelt(
   if (!targetInput && acceptsAny && targetNode.data.inputBuffers.length > 0) {
     targetInput = targetNode.data.inputBuffers[0];
   }
-  
+
   if (!targetInput) {
     return {
       sourceUpdate: {},
@@ -263,14 +279,14 @@ export function transferAlongBelt(
       edgeUpdate: { resourceType, flowRate: 0 },
     };
   }
-  
+
   // Calculate transfer amount
   const maxTransfer = beltData.throughput * deltaTime;
   const available = sourceOutput.amount;
   const space = targetInput.capacity - targetInput.amount;
-  
+
   const transferAmount = Math.min(maxTransfer, available, space);
-  
+
   if (transferAmount <= 0) {
     return {
       sourceUpdate: {},
@@ -278,19 +294,19 @@ export function transferAlongBelt(
       edgeUpdate: { resourceType, flowRate: 0 },
     };
   }
-  
+
   // Update buffers
   const newSourceOutput = {
     ...sourceOutput,
     amount: sourceOutput.amount - transferAmount,
   };
-  
+
   const newTargetInput = {
     ...targetInput,
     type: resourceType,
     amount: targetInput.amount + transferAmount,
   };
-  
+
   return {
     sourceUpdate: {
       outputBuffers: [newSourceOutput],
@@ -320,11 +336,11 @@ export function simulateTick(
   const nodeUpdates = new Map<string, Partial<FactoryNodeData>>();
   const edgeUpdates = new Map<string, Partial<BeltData>>();
   let modulesProduced = 0;
-  
+
   // Phase 1: Update production nodes
   for (const node of nodes) {
     let update: Partial<FactoryNodeData> = {};
-    
+
     switch (node.data.type) {
       case 'miner':
         update = updateMiner(node as Node<MinerNodeData>, deltaTime);
@@ -349,19 +365,19 @@ export function simulateTick(
       case 'splitter':
         update = updateSplitter(node as Node<SplitterNodeData>);
     }
-    
+
     if (Object.keys(update).length > 0) {
       nodeUpdates.set(node.id, update);
     }
   }
-  
+
   // Phase 2: Transfer resources along belts
   for (const edge of edges) {
     const sourceNode = nodes.find(n => n.id === edge.source);
     const targetNode = nodes.find(n => n.id === edge.target);
-    
+
     if (!sourceNode || !targetNode) continue;
-    
+
     // Apply pending updates before transfer
     const sourceUpdate = nodeUpdates.get(sourceNode.id);
     const updatedSource: Node<FactoryNodeData> = {
@@ -371,7 +387,7 @@ export function simulateTick(
         ...(sourceUpdate || {}),
       } as FactoryNodeData,
     };
-    
+
     const targetUpdate = nodeUpdates.get(targetNode.id);
     const updatedTarget: Node<FactoryNodeData> = {
       ...targetNode,
@@ -380,29 +396,29 @@ export function simulateTick(
         ...(targetUpdate || {}),
       } as FactoryNodeData,
     };
-    
+
     const { sourceUpdate: newSourceUpdate, targetUpdate: newTargetUpdate, edgeUpdate } = transferAlongBelt(
       edge,
       updatedSource,
       updatedTarget,
       deltaTime
     );
-    
+
     // Merge updates
     if (Object.keys(newSourceUpdate).length > 0) {
       const existing = nodeUpdates.get(sourceNode.id) || {};
       nodeUpdates.set(sourceNode.id, { ...existing, ...newSourceUpdate });
     }
-    
+
     if (Object.keys(newTargetUpdate).length > 0) {
       const existing = nodeUpdates.get(targetNode.id) || {};
       nodeUpdates.set(targetNode.id, { ...existing, ...newTargetUpdate });
     }
-    
+
     if (Object.keys(edgeUpdate).length > 0) {
       edgeUpdates.set(edge.id, edgeUpdate);
     }
   }
-  
+
   return { nodeUpdates, edgeUpdates, modulesProduced };
 }
