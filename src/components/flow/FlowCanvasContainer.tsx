@@ -139,13 +139,13 @@ function FlowCanvasContainer() {
         setEdges(updatedEdges);
       }
 
-      // Update economy
-      if (modulesProduced > 0) {
-        const newModules = economy.modules + modulesProduced;
-        const newTotal = economy.totalModulesProduced + modulesProduced;
-        updateEconomy(newModules, modulesProduced / deltaTime);
+      // Update economy every tick to ensure production rate reflects current status
+      const newModules = economy.modules + modulesProduced;
+      const newTotal = economy.totalModulesProduced + modulesProduced;
+      updateEconomy(newModules, modulesProduced / deltaTime);
 
-        // Update goals
+      // Update goals if modules were produced
+      if (modulesProduced > 0) {
         goals.forEach((goal, index) => {
           if (goal.type === "total" && !goal.completed) {
             updateGoal(index, newTotal);
